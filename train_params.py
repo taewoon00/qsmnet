@@ -27,17 +27,17 @@ Experiment setting parameters
     PRE_NET_CHECKPOINT_PATH: path of pre-network(QSMnet) checkpoint.
     PRE_NET_CHECKPOINT_FILE: filename of pre-network(QSMnet) checkpoint.
 """
-GPU_NUM = '0'
+GPU_NUM = '1'
 SEED = 777
 INPUT_UNIT = 'ppm'
 
-TRAIN_PATH = '../Data/'
-VALID_PATH = '../Data/Valid/'
-VALUE_PATH = '../Data/'
-TRAIN_FILE = 'xsepnet_train_patch_inplane_largedegree_romeo_arlo_6subj_mix.hdf5'
-VALID_FILE = 'subj06_DataFor_xsepnet_ppm_COSMOS_6dir_romeo_arlo.mat'
-VALUE_FILE = 'xsepnet_train_patch_norm_factor_inplane_largedegree_romeo_arlo_6subj_mix.mat'
-CHECKPOINT_PATH = './Checkpoint/241114_qsmnet_expdecay_subj06_romeo_arlo_6subj_mix/'
+TRAIN_PATH = './Data/'
+VALID_PATH = './Data/'
+VALUE_PATH = './Data/'
+TRAIN_FILE = 'train_patch.hdf5'
+VALID_FILE = 'valid.mat'
+VALUE_FILE = 'train_patch_norm_factor.mat'
+CHECKPOINT_PATH = './Checkpoint/'
 
 
 """
@@ -60,7 +60,8 @@ Network-parameters
     CHANNEL_IN: number of out-channels for first conv layers
     KERNEL_SIZE: kernel size of conv layers"""
 CHANNEL_IN = 32
-KERNEL_SIZE = 3
+# KERNEL_SIZE = 3
+KERNEL_SIZE = 5
 
 """
 Hyper-parameters
@@ -74,12 +75,13 @@ Hyper-parameters
     W_GDLOSS: weight of gradient loss [QSMnet: 0.1, QSMnet+: 0.1]
 """
 TRAIN_EPOCH = 50
-SAVE_STEP = 10
+SAVE_STEP = 1
 LEARNING_RATE = 0.001
-LR_EXP_DECAY_GAMMA = 0.9999
+# LR_EXP_DECAY_GAMMA = 0.9829
+LR_EXP_DECAY_GAMMA = 0.9613
 BATCH_SIZE = 12
 W_L1Loss = 1
-W_MDLOSS = 0
+W_MDLOSS = 1
 W_GDLOSS = 0.1
 
 import argparse

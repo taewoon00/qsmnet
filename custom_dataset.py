@@ -24,9 +24,9 @@ class train_dataset():
         data_file = h5py.File(args.TRAIN_PATH + args.TRAIN_FILE, "r")
         value_file = scipy.io.loadmat(args.VALUE_PATH + args.VALUE_FILE)
         
-        self.field = data_file['pField']
-        self.qsm = data_file['pCosmosSus']
-        self.mask = data_file['pMask']
+        self.field = data_file['phs_tissue']
+        self.qsm = data_file['chi_cosmos']
+        self.mask = data_file['mask']
         
         self.field_mean = value_file['field_mean'].item()
         self.field_std = value_file['field_std'].item()
@@ -59,32 +59,33 @@ class valid_dataset():
 
         value_file = scipy.io.loadmat(args.VALUE_PATH + args.VALUE_FILE)
             
-        qsm = data_file['cosmos_4d']
+        qsm = data_file['chi_cosmos']
         
         if args.INPUT_UNIT == 'Hz':
             ### Converting Hz maps to ppm ###
             print('Input map unit has been changed (hz -> ppm)')
-            field = data_file['local_f_hz_4d']
+            field = data_file['phs_tissue']
 
             CF = args.CF
 
             field_in_ppm = field / CF * 1e6
         elif args.INPUT_UNIT == 'radian':
             print('Input map unit has been changed (radian -> ppm)')
-            field = data_file['local_f_4d']
+            field = data_file['phs_tissue']
             
             delta_TE = args.delta_TE
             CF = args.CF
             
-            field_in_ppm = -1 * field / (2*math.pi*delta_TE) / CF * 1e6
+            # field_in_ppm = -1 * field / (2*math.pi*delta_TE) / CF * 1e6
+            field_in_ppm = field / (2*math.pi*delta_TE) / CF * 1e6
         elif args.INPUT_UNIT == 'ppm':
-            field = data_file['local_f_ppm_4d']
+            field = data_file['phs_tissue']
 
             field_in_ppm = field
         
         
         self.field = field_in_ppm
-        self.mask = data_file['mask_4d']
+        self.mask = data_file['mask']
         self.qsm = qsm
         
         self.field_mean = value_file['field_mean'].item()
@@ -116,7 +117,7 @@ class test_dataset():
             
         for i in range(0, len(args.TEST_FILE)):
             try:
-                data_file = scipy.io.loadmat(args.TEST_PATH + args.TEST_FILE[i])
+                data_file = scipy.io.loadmat(args.TEST_PATH + args.TEST_FILE[i])    
             except:
                 data_file = mat73.loadmat(args.TEST_PATH + args.TEST_FILE[i])
 
@@ -124,7 +125,7 @@ class test_dataset():
             if args.INPUT_UNIT == 'Hz':
                 ### Converting Hz to ppm ###
                 print('Input map unit has been changed (hz -> ppm)')
-                field = data_file['local_f_hz_4d']
+                field = data_file['phs_tissue']
 
                 CF = args.CF
 
@@ -132,24 +133,24 @@ class test_dataset():
             elif args.INPUT_UNIT == 'radian':
                 ### Converting radian to ppm ###
                 print('Input map unit has been changed (radian -> ppm)')
-                field = data_file['local_f_4d']
+                field = data_file['phs_tissue']
 
                 delta_TE = args.delta_TE
                 CF = args.CF
 
                 field_in_ppm = field / (2*math.pi*delta_TE) / CF * 1e6
             elif args.INPUT_UNIT == 'ppm':
-                field = data_file['local_f_ppm_4d']
+                field = data_file['phs_tissue']
 
                 field_in_ppm = field
 
             self.field.append(crop_img_16x(field_in_ppm))
-            self.mask.append(crop_img_16x(data_file['mask_4d']))
-            self.mask_for_eval_pos.append(crop_img_16x(data_file['mask_4d']))
-            self.mask_for_eval_neg.append(crop_img_16x(data_file['mask_4d']))
+            self.mask.append(crop_img_16x(data_file['mask']))
+            self.mask_for_eval_pos.append(crop_img_16x(data_file['mask']))
+            self.mask_for_eval_neg.append(crop_img_16x(data_file['mask']))
             
             if args.LABEL_EXIST is True:
-                self.qsm.append(crop_img_16x(data_file['cosmos_4d']))
+                self.qsm.append(crop_img_16x(data_file['chi_cosmos']))
 
             if args.CSF_MASK_EXIST is True:
                 subj_name = args.TEST_FILE[i].split('_')[0]
@@ -183,4 +184,4 @@ class test_dataset():
                 self.mask_for_eval_pos[i] = pos_mask_wo_vessel
                 self.mask_for_eval_neg[i] = neg_mask_wo_vessel
             
-            self.matrix_size.append(crop_img_16x(data_file['mask_4d']).shape)
+            self.matrix_size.append(crop_img_16x(data_file['mask']).shape)

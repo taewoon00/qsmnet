@@ -36,7 +36,8 @@ writer = SummaryWriter(args.CHECKPOINT_PATH + 'runs/')
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= args.GPU_NUM
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 createDirectory(args.CHECKPOINT_PATH)
 createDirectory(args.CHECKPOINT_PATH+ 'Results')
@@ -129,14 +130,18 @@ for epoch in tqdm(range(args.TRAIN_EPOCH)):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        scheduler.step()
+        # scheduler.step()
+        if step % 400 == 0:
+            scheduler.step()
         step += 1
+
         
         train_loss_list.append(loss.item())
         train_mdloss_list.append(mdloss.item())
         train_gdloss_list.append(gdloss.item())
 
         del(local_f_batch, qsm_batch, m_batch, loss, l1loss, mdloss, gdloss); torch.cuda.empty_cache();
+    
 
     logger.info("Train: EPOCH %04d / %04d | LOSS %.6f | M_LOSS %.6f | G_LOSS %.6f | TIME %.1fsec | LR %.8f"
           %(epoch+1, args.TRAIN_EPOCH, np.mean(train_loss_list), np.mean(train_mdloss_list), np.mean(train_gdloss_list), time.time() - epoch_time, optimizer.param_groups[0]['lr']))
@@ -215,6 +220,7 @@ for epoch in tqdm(range(args.TRAIN_EPOCH)):
     ### Saving the model ###
     if (epoch+1) % args.SAVE_STEP == 0:
         save_model(epoch+1, model, args.CHECKPOINT_PATH, epoch+1)
+
 
 logger.info("------ Training is finished ------")
 logger.info(f'[best epochs]\nLoss: {best_epoch_loss}\nNRMSE: {best_epoch_nrmse}\nPSNR: {best_epoch_psnr}')

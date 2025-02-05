@@ -8,14 +8,14 @@ import math
 import shutil
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 '''
 File Path
 '''
-FILE_PATH_INPUT = './data/'
-FILE_NAME = '/DataFor_xsep_COSMOS_newDr.mat'
-FILE_PATH_OUTPUT = './'
+FILE_PATH_INPUT = './Data/'
+FILE_NAME = 'train_data.mat'
+FILE_PATH_OUTPUT = './Data/'
 result_file = h5py.File(FILE_PATH_OUTPUT + 'train_patch.hdf5', 'w')
 
 '''
@@ -54,9 +54,9 @@ start_time = time.time()
 
 m = scipy.io.loadmat(FILE_PATH_INPUT + FILE_NAME)
 
-cosmos_sus = m['cosmos_4d']
-field = m['local_f_4d']
-mask = m['mask_4d']
+cosmos_sus = m['chi_cosmos']
+field = m['phs_tissue']
+mask = m['mask']
 
 
 ### Crop brain region tightly ###
@@ -114,7 +114,9 @@ mask = mask[new_y_min:new_y_max, new_x_min:new_x_max, new_z_min:new_z_max, :]
 #                      mdict={'origin_mask':origin_mask, 'tight_mask': mask})
 
 ### Converting Hz maps to ppm ###
-field_in_ppm = -1 * field / (2*math.pi*delta_TE) / CF * 1e6
+# field_in_ppm = -1 * field / (2*math.pi*delta_TE) / CF * 1e6
+field_in_ppm = field
+
 
 matrix_size = np.shape(mask)
 strides = [(matrix_size[i] - PS) // (patch_num[i] - 1) for i in range(3)];
@@ -151,15 +153,57 @@ patches_cosmos_sus = np.array(patches_cosmos_sus, dtype='float32', copy=False)
 patches_field = np.array(patches_field, dtype='float32', copy=False)
 patches_mask = np.array(patches_mask, dtype='float32', copy=False)
 
-cosmos_sus_mean = np.mean(patches_cosmos_sus[patches_mask > 0])
-cosmos_sus_std = np.std(patches_cosmos_sus[patches_mask > 0])
-field_mean = np.mean(patches_field[patches_mask > 0])
-field_std = np.std(patches_field[patches_mask > 0])
-n_element = np.sum(patches_mask)
+# cosmos_sus_mean = np.mean(patches_cosmos_sus[patches_mask > 0])
+# cosmos_sus_std = np.std(patches_cosmos_sus[patches_mask > 0])
+# field_mean = np.mean(patches_field[patches_mask > 0])
+# field_std = np.std(patches_field[patches_mask > 0])
+# n_element = np.sum(patches_mask)
 
-result_file.create_dataset('pCosmosSus', data=patches_cosmos_sus)
-result_file.create_dataset('pField', data=patches_field)
-result_file.create_dataset('pMask', data=patches_mask)
+# --- Replace the lines for mean/std with this: ---
+
+cosmos_sus_sum   = 0.0
+cosmos_sus_sumsq = 0.0
+field_sum   = 0.0
+field_sumsq = 0.0
+n_element   = 0
+
+# Loop over each patch (the first dimension of your arrays)
+num_patches = len(patches_mask)
+for idx in range(num_patches):
+    mask_patch = patches_mask[idx]
+    sus_patch  = patches_cosmos_sus[idx]
+    fld_patch  = patches_field[idx]
+    
+    # Identify valid (non-zero) voxels in this patch
+    valid_voxels = (mask_patch > 0)
+    
+    # Extract only valid values from each patch
+    sus_vals = sus_patch[valid_voxels]
+    fld_vals = fld_patch[valid_voxels]
+    
+    # Accumulate sums and sums of squares
+    cosmos_sus_sum   += np.sum(sus_vals)
+    cosmos_sus_sumsq += np.sum(sus_vals**2)
+    field_sum   += np.sum(fld_vals)
+    field_sumsq += np.sum(fld_vals**2)
+    
+    # Count how many valid voxels we have
+    n_element += np.count_nonzero(valid_voxels)
+
+# Now compute global mean and std
+cosmos_sus_mean = cosmos_sus_sum / n_element
+cosmos_sus_var  = (cosmos_sus_sumsq / n_element) - (cosmos_sus_mean**2)
+cosmos_sus_std  = np.sqrt(cosmos_sus_var)
+
+field_mean = field_sum / n_element
+field_var  = (field_sumsq / n_element) - (field_mean**2)
+field_std  = np.sqrt(field_var)
+
+
+
+result_file.create_dataset('chi_cosmos', data=patches_cosmos_sus)
+result_file.create_dataset('phs_tissue', data=patches_field)
+result_file.create_dataset('mask', data=patches_mask)
 
 scipy.io.savemat(FILE_PATH_OUTPUT + 'train_patch_norm_factor.mat',
                  mdict={'cosmos_sus_mean': cosmos_sus_mean, 'cosmos_sus_std': cosmos_sus_std,

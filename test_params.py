@@ -38,17 +38,17 @@ GPU_NUM = '1'
 INPUT_UNIT = 'ppm'
 TAG = 'loss'
 LABEL_EXIST = True
-CSF_MASK_EXIST = True
-RESULT_SAVE_TOGGLE = False
+CSF_MASK_EXIST = False
+RESULT_SAVE_TOGGLE = True
 
-TEST_PATH = '../Data/Test/'
-TEST_FILE = ['subj05_DataFor_xsepnet_ppm_COSMOS_6dir_romeo_arlo.mat', 'subj08_DataFor_xsepnet_ppm_COSMOS_6dir_romeo_arlo', 'subj14_DataFor_xsepnet_ppm_COSMOS_6dir_romeo_arlo.mat','subj15_DataFor_xsepnet_ppm_COSMOS_6dir_romeo_arlo.mat', 'subj16_DataFor_xsepnet_ppm_COSMOS_6dir_romeo_arlo.mat', 'subj17_DataFor_xsepnet_ppm_COSMOS_6dir_romeo_arlo.mat']
+TEST_PATH = './Data/'
+TEST_FILE = ['test1.mat', 'test2.mat', 'test3.mat', 'test4.mat', 'test5.mat', 'test6.mat']
 
-CHECKPOINT_PATH = './Checkpoint/241114_qsmnet_expdecay_subj06_romeo_arlo_6subj_mix/'
-CHECKPOINT_FILE = 'best_' + TAG + '.pth.tar'
+CHECKPOINT_PATH = './Checkpoint/'
+CHECKPOINT_FILE = '24.pth.tar'
 
-VALUE_FILE_PATH = '../Data/'
-VALUE_FILE_NAME = 'xsepnet_train_patch_norm_factor_inplane_largedegree_romeo_arlo_6subj_mix.mat'
+VALUE_FILE_PATH = './Data/'
+VALUE_FILE_NAME = 'train_patch_norm_factor.mat'
 
 RESULT_PATH = CHECKPOINT_PATH + 'Results/'
 RESULT_FILE = ''
@@ -75,7 +75,7 @@ Network-parameters
     KERNEL_SIZE: kernel size of conv layers
 """
 CHANNEL_IN = 32
-KERNEL_SIZE = 3
+KERNEL_SIZE = 5
 
 
 import argparse
