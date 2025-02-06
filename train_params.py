@@ -60,8 +60,7 @@ Network-parameters
     CHANNEL_IN: number of out-channels for first conv layers
     KERNEL_SIZE: kernel size of conv layers"""
 CHANNEL_IN = 32
-# KERNEL_SIZE = 3
-KERNEL_SIZE = 5
+KERNEL_SIZE = 3
 
 """
 Hyper-parameters
@@ -77,8 +76,7 @@ Hyper-parameters
 TRAIN_EPOCH = 50
 SAVE_STEP = 1
 LEARNING_RATE = 0.001
-# LR_EXP_DECAY_GAMMA = 0.9829
-LR_EXP_DECAY_GAMMA = 0.9613
+LR_EXP_DECAY_GAMMA = 0.9918
 BATCH_SIZE = 12
 W_L1Loss = 1
 W_MDLOSS = 1

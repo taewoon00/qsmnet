@@ -45,7 +45,7 @@ TEST_PATH = './Data/'
 TEST_FILE = ['test1.mat', 'test2.mat', 'test3.mat', 'test4.mat', 'test5.mat', 'test6.mat']
 
 CHECKPOINT_PATH = './Checkpoint/'
-CHECKPOINT_FILE = '24.pth.tar'
+CHECKPOINT_FILE = '9.pth.tar'
 
 VALUE_FILE_PATH = './Data/'
 VALUE_FILE_NAME = 'train_patch_norm_factor.mat'
@@ -75,7 +75,7 @@ Network-parameters
     KERNEL_SIZE: kernel size of conv layers
 """
 CHANNEL_IN = 32
-KERNEL_SIZE = 5
+KERNEL_SIZE = 3
 
 
 import argparse
