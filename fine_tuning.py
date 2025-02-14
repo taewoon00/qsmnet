@@ -31,8 +31,13 @@ from network import *
 from custom_dataset import *
 from train_params import parse
 
+FT_PATH = './Checkpoint/FT'
+
+if not os.path.exists(FT_PATH):
+    os.makedirs(FT_PATH)
+
 args = parse()
-writer = SummaryWriter(args.CHECKPOINT_PATH + 'runs/')
+writer = SummaryWriter(FT_PATH + 'runs/')
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]= args.GPU_NUM
@@ -40,10 +45,12 @@ device = torch.device("cuda")
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+
+
 ### Logger setting ###
 logger = logging.getLogger("module.train")
 logger.setLevel(logging.INFO)
-logging_helper.setup(args.CHECKPOINT_PATH + 'Results','log.txt')
+logging_helper.setup(FT_PATH + 'Results','log.txt')
 
 nowDate = datetime.datetime.now().strftime('%Y-%m-%d')
 nowTime = datetime.datetime.now().strftime('%H:%M:%S')
@@ -53,7 +60,8 @@ for key, value in vars(args).items():
     logger.info('{:15s}: {}'.format(key,value))
 
 ### Random seed ###
-os.environ['PYTHONHASHargs.SEED'] = str()
+# os.environ['PYTHONHASHargs.SEED'] = str()
+os.environ['PYTHONHASHSEED'] = str(args.SEED)
 random.seed(args.SEED)
 np.random.seed(args.SEED)
 torch.manual_seed(args.SEED)
@@ -63,18 +71,44 @@ torch.random.manual_seed(args.SEED)
 torch.backends.cudnn.deterministic=True
 torch.backends.cudnn.benchmark=False
 
-# Replace the original model initialization with:
+
+# 원하는 에포크 번호를 변수에 저장합니다.
+desired_epoch = 27
+
+# 저장된 체크포인트 파일 경로 설정 (예: 'Checkpoint/10.pth.tar')
+load_file_name = os.path.join(args.CHECKPOINT_PATH, f'{desired_epoch}.pth.tar')
+
+# 체크포인트 불러오기
+checkpoint = torch.load(load_file_name)
+
+# 모델 객체를 미리 생성한 후, state_dict를 불러옵니다.
 model = QSMnet(channel_in=args.CHANNEL_IN, kernel_size=args.KERNEL_SIZE).to(device)
-checkpoint = torch.load('path_to_pretrained_model.pt')  # e.g., args.CHECKPOINT_PATH + 'best_loss_model.pt'
-model.load_state_dict(checkpoint['model_state_dict'])
+model.load_state_dict(checkpoint['state_dict'])
+
+# (만약 multi-GPU 사용 환경이라면, 추가적인 처리 필요)
+
 
 if torch.cuda.device_count() > 1:
     logger.info(f'Multi GPU - num: {torch.cuda.device_count()} - are used')
     model = nn.DataParallel(model).to(device)
 
+# optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+# scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.LR_EXP_DECAY_GAMMA)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
-scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.LR_EXP_DECAY_GAMMA)
+warmup_epochs = 5  # warm-up 에포크 수 (필요에 따라 조정)
+base_lr = 1e-3  # 기존 기본 학습률, 예를 들어 1e-4
+decay_gamma = 0.9027 # 예: 0.9613
+
+optimizer = torch.optim.Adam(model.parameters(), lr=base_lr)
+
+def lr_lambda(epoch):
+    if epoch < warmup_epochs:
+        return float(epoch + 1) / float(warmup_epochs)
+    else:
+        return decay_gamma ** (epoch - warmup_epochs)
+
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
+
 
 train_set = train_dataset(args)
 valid_set = valid_dataset(args)
@@ -105,7 +139,7 @@ for epoch in tqdm(range(args.TRAIN_EPOCH)):
     train_loss_list = []
     train_mdloss_list = []
     train_gdloss_list = []
-    valid_loss_list =[]
+    valid_loss_list =[]   
     nrmse_list = []
     psnr_list = []
     ssim_list = []
@@ -132,8 +166,8 @@ for epoch in tqdm(range(args.TRAIN_EPOCH)):
         loss.backward()
         optimizer.step()
         # scheduler.step()
-        if step % 400 == 0:
-            scheduler.step()
+        # if step % 400 == 0:
+        #     scheduler.step()
         step += 1
 
         
@@ -147,6 +181,8 @@ for epoch in tqdm(range(args.TRAIN_EPOCH)):
     logger.info("Train: EPOCH %04d / %04d | LOSS %.6f | M_LOSS %.6f | G_LOSS %.6f | TIME %.1fsec | LR %.8f"
           %(epoch+1, args.TRAIN_EPOCH, np.mean(train_loss_list), np.mean(train_mdloss_list), np.mean(train_gdloss_list), time.time() - epoch_time, optimizer.param_groups[0]['lr']))
     
+    scheduler.step()
+
     ### Validation ###
     model.eval()
     
@@ -202,25 +238,25 @@ for epoch in tqdm(range(args.TRAIN_EPOCH)):
 
         if np.mean(valid_loss_list) < best_loss:
             tag = 'best_loss_' + str(epoch+1)
-            save_model(epoch+1, model, args.CHECKPOINT_PATH, tag)
+            save_model(epoch+1, model, FT_PATH, tag)
             best_loss = np.mean(valid_loss_list)
             best_epoch_loss = epoch+1
         if np.mean(_nrmse) < best_nrmse:
-            save_model(epoch+1, model, args.CHECKPOINT_PATH, 'best_nrmse')
+            save_model(epoch+1, model, FT_PATH, 'best_nrmse')
             best_nrmse = np.mean(_nrmse)
             best_epoch_nrmse = epoch+1
         if np.mean(_psnr) > best_psnr:
-            save_model(epoch+1, model, args.CHECKPOINT_PATH, 'best_psnr')
+            save_model(epoch+1, model, FT_PATH, 'best_psnr')
             best_psnr = np.mean(_psnr)
             best_epoch_psnr = epoch+1
         if np.mean(_ssim) > best_ssim:
-            save_model(epoch+1, model, args.CHECKPOINT_PATH, 'best_ssim')
+            save_model(epoch+1, model, FT_PATH, 'best_ssim')
             best_ssim = np.mean(_ssim)
             best_epoch_ssim = epoch+1
 
     ### Saving the model ###
     if (epoch+1) % args.SAVE_STEP == 0:
-        save_model(epoch+1, model, args.CHECKPOINT_PATH, epoch+1)
+        save_model(epoch+1, model, FT_PATH, epoch+1)
 
 
 logger.info("------ Training is finished ------")
@@ -234,7 +270,7 @@ plt.plot(epoch_list, np.array(train_loss), 'y')
 plt.title('Train loss Graph')
 plt.xlabel('epoch')
 plt.ylabel('loss')
-plt.savefig(args.CHECKPOINT_PATH + "Results/train_loss_graph.png")
+plt.savefig(FT_PATH + "Results/train_loss_graph.png")
 plt.clf()
 
 #plt.ylim((0.01, 0.50))
@@ -242,7 +278,7 @@ plt.plot(epoch_list, np.array(valid_loss), 'c')
 plt.title('Valid loss Graph')
 plt.xlabel('epoch')
 plt.ylabel('loss')
-plt.savefig(args.CHECKPOINT_PATH + "Results/valid_loss_graph.png")
+plt.savefig(FT_PATH + "Results/valid_loss_graph.png")
 plt.clf()
 
 plt.plot(epoch_list, np.array(nrmse), 'y')
@@ -250,7 +286,7 @@ plt.plot(epoch_list, np.array(nrmse), 'y')
 plt.title('NRMSE Graph')
 plt.xlabel('epoch')
 plt.ylabel('NRMSE')
-plt.savefig(args.CHECKPOINT_PATH + "Results/NRMSE_graph.png")
+plt.savefig(FT_PATH + "Results/NRMSE_graph.png")
 plt.clf()
 
 plt.plot(epoch_list, np.array(psnr), 'y')
@@ -258,5 +294,5 @@ plt.plot(epoch_list, np.array(psnr), 'y')
 plt.title('PSNR Graph')
 plt.xlabel('epoch')
 plt.ylabel('PSNR')
-plt.savefig(args.CHECKPOINT_PATH + "Results/PSNR_graph.png")
+plt.savefig(FT_PATH + "Results/PSNR_graph.png")
 plt.clf()

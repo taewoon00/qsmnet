@@ -55,7 +55,8 @@ for key, value in vars(args).items():
     logger.info('{:15s}: {}'.format(key,value))
 
 ### Random seed ###
-os.environ['PYTHONHASHargs.SEED'] = str()
+# os.environ['PYTHONHASHargs.SEED'] = str()
+os.environ['PYTHONHASHSEED'] = str(args.SEED)
 random.seed(args.SEED)
 np.random.seed(args.SEED)
 torch.manual_seed(args.SEED)
@@ -131,8 +132,8 @@ for epoch in tqdm(range(args.TRAIN_EPOCH)):
         loss.backward()
         optimizer.step()
         # scheduler.step()
-        if step % 400 == 0:
-            scheduler.step()
+        # if step % 400 == 0:
+        #     scheduler.step()
         step += 1
 
         
@@ -142,6 +143,7 @@ for epoch in tqdm(range(args.TRAIN_EPOCH)):
 
         del(local_f_batch, qsm_batch, m_batch, loss, l1loss, mdloss, gdloss); torch.cuda.empty_cache();
     
+    scheduler.step()
 
     logger.info("Train: EPOCH %04d / %04d | LOSS %.6f | M_LOSS %.6f | G_LOSS %.6f | TIME %.1fsec | LR %.8f"
           %(epoch+1, args.TRAIN_EPOCH, np.mean(train_loss_list), np.mean(train_mdloss_list), np.mean(train_gdloss_list), time.time() - epoch_time, optimizer.param_groups[0]['lr']))

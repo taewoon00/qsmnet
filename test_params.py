@@ -41,11 +41,12 @@ LABEL_EXIST = True
 CSF_MASK_EXIST = False
 RESULT_SAVE_TOGGLE = True
 
-TEST_PATH = './Data/'
+TEST_PATH = './Data/test_data/'
 TEST_FILE = ['test1.mat', 'test2.mat', 'test3.mat', 'test4.mat', 'test5.mat', 'test6.mat']
 
+# CHECKPOINT_PATH = './Checkpoint/FT/'
 CHECKPOINT_PATH = './Checkpoint/'
-CHECKPOINT_FILE = '9.pth.tar'
+CHECKPOINT_FILE = '18.pth.tar'
 
 VALUE_FILE_PATH = './Data/'
 VALUE_FILE_NAME = 'train_patch_norm_factor.mat'
